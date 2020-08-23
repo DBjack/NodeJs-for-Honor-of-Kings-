@@ -7,10 +7,17 @@ module.exports = (app) => {
     });
     let modelName;
 
-    // 查询分类
+    // 查询所有
     router.get("/", async(req, res) => {
         const Model = require(`../../models/${modelName}`);
         const model = await Model.find().populate("parent").limit(10);
+        res.send(model);
+    });
+
+    // 查询单个详情
+    router.get("/:id", async(req, res) => {
+        const Model = require(`../../models/${modelName}`);
+        const model = await Model.findById(req.params.id);
         res.send(model);
     });
 
