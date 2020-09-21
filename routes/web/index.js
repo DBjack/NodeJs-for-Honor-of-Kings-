@@ -30,8 +30,9 @@ module.exports = (app) => {
             "王者荣耀电竞推出六大措施打造全民参与体验闭环",
         ];
         const newsList = newsTitles.map((title) => {
+            const randomCats = cats.slice(0).sort((a, b) => Math.random() - 0.5);
             return {
-                categories: [],
+                categories: randomCats.slice(0, 2),
                 title: title,
             };
         });
