@@ -2,11 +2,18 @@ module.exports = (app) => {
     const router = require("express").Router();
 
     const mongoose = require("mongoose");
-    // const Article = mongoose.model("Article");
+    const Article = mongoose.model("Article");
     const Category = mongoose.model("Category");
-
     router.get("/news/init", async(req, res) => {
-        const cats = await Category.find().lean();
+        const parent = await Category.findOne({
+            name: "新闻资讯",
+        });
+        console.log(parent);
+        const cats = await Category.find()
+            .where({
+                parent: parent,
+            })
+            .lean();
         const newsTitles = [
             "郑爽张继科空降QQ名人赛，互动观赛赢好礼",
             "《天天酷跑》七周年福利嗨翻，初心不改、携跑未来！",
@@ -36,7 +43,67 @@ module.exports = (app) => {
                 title: title,
             };
         });
+        // 先清空数据
+        await Article.deleteMany();
+        // 插入数据
+        await Article.insertMany(newsList);
         res.send(newsList);
+    });
+
+    router.get("/news/list", async(req, res) => {
+        // const parent = await Category.findOne({
+        //         name: "新闻资讯",
+        //     })
+        //     .populate({
+        //         path: "children",
+        //         populate: {
+        //             path: "newsList",
+        //         },
+        //     })
+        //     .lean();
+        const parent = await Category.findOne({
+            name: "新闻资讯",
+        });
+        const cats = await Category.aggregate([
+            { $match: { parent: parent._id } },
+            {
+                $lookup: {
+                    from: "articles",
+                    localField: "_id",
+                    foreignField: "categories",
+                    as: "newsList",
+                },
+            },
+            {
+                $addFields: {
+                    newsList: {
+                        $slice: ["$newsList", 5],
+                    },
+                },
+            },
+        ]);
+
+        const subCats = cats.map((v) => v._id);
+        cats.unshift({
+            name: "热门",
+            newsList: await Article.find()
+                .where({
+                    categories: { $in: subCats },
+                })
+                .populate("categories")
+                .limit(5)
+                .lean(),
+        });
+
+        cats.map((cat) => {
+            cat.newsList.map((news) => {
+                news.categoryName =
+                    cat.name === "热门" ? news.categories[0].name : cat.name;
+                return news;
+            });
+            return cat;
+        });
+        res.send(cats);
     });
 
     app.use("/web/api", router);

@@ -5,13 +5,14 @@ module.exports = (options) => {
 
     return async(req, res, next) => {
         if (req.baseUrl !== "/admin/api/rest/adminUser") {
-            const token = String(req.headers.authorization || "");
-            console.log(token, 123);
-            assert(token, 422, "请先登录");
+            const token = String(req.headers.authonzation || "");
+            assert(token, 401, "请先登录");
             const { id } = jwt.verify(token, req.app.get("secret"));
-            assert(id, 422, "请先登录");
+            assert(id, 401, "请先登录");
+            console.log(id, "id");
             req.user = await AdminUser.findById(id);
-            assert(req.user, 422, "请先登录");
+            console.log(req.user);
+            assert(req.user, 401, "请先登录");
         }
         await next();
     };
